@@ -17,7 +17,7 @@ import {
   Loader2,
   Tv,
 } from 'lucide-react'
-import { usePlayer } from '../context/PlayerContext'
+import { usePlayer } from '../context/usePlayer'
 import { formatAudioTime } from '../utils/time'
 import { AudioVisualizer } from './AudioVisualizer'
 

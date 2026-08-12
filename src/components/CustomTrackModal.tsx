@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { X, Plus, Check, Video } from 'lucide-react'
-import { usePlayer } from '../context/PlayerContext'
+import { usePlayer } from '../context/usePlayer'
 import { extractYouTubeId, getYouTubeThumbnail } from '../utils/youtube'
 
 export function CustomTrackModal() {

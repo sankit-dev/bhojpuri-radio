@@ -10,7 +10,7 @@ import {
   Image as ImageIcon,
   Sliders,
 } from 'lucide-react'
-import { usePlayer } from '../context/PlayerContext'
+import { usePlayer } from '../context/usePlayer'
 import { AudioVisualizer } from './AudioVisualizer'
 
 export function PlaylistDrawer() {

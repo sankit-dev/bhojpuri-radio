@@ -1,57 +1,10 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { PlayerContext } from './playerContextValue'
 import { defaultPlaylist } from '../data/playlist'
 import { siteConfig } from '../config/site'
 import type { BackgroundMode, PlaybackStatus, Song } from '../types/player'
 import type { YTPlayerInstance } from '../types/youtube'
 import { extractYouTubeId, extractYouTubePlaylistId, getYouTubeThumbnail } from '../utils/youtube'
-
-interface PlayerContextType {
-  playlist: Song[]
-  songIndex: number
-  currentSong: Song
-  isPlaying: boolean
-  status: PlaybackStatus
-  currentTime: number
-  duration: number
-  volume: number
-  isMuted: boolean
-  isShuffle: boolean
-  loopMode: 'off' | 'all' | 'one'
-  backgroundMode: BackgroundMode
-  bgOpacity: number
-  isReady: boolean
-  error: string | null
-  isDrawerOpen: boolean
-  isCustomModalOpen: boolean
-  hasUserInteracted: boolean
-  play: () => void
-  pause: () => void
-  togglePlayback: () => void
-  nextSong: () => void
-  prevSong: () => void
-  seek: (seconds: number) => void
-  setVolume: (volume: number) => void
-  toggleMute: () => void
-  selectSong: (index: number) => void
-  addCustomTrack: (urlOrId: string, title?: string, artist?: string) => boolean
-  replacePlaylist: (urlOrId: string) => boolean
-  toggleShuffle: () => void
-  toggleLoop: () => void
-  setBackgroundMode: (mode: BackgroundMode) => void
-  setBgOpacity: (opacity: number) => void
-  setIsDrawerOpen: (open: boolean) => void
-  setIsCustomModalOpen: (open: boolean) => void
-}
-
-const PlayerContext = createContext<PlayerContextType | null>(null)
 
 const YOUTUBE_CONTAINER_ID = 'youtube-iframe-player'
 
@@ -146,6 +99,40 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   }, [])
+
+  const nextSong = useCallback(() => {
+    if (!playerRef.current) return
+    try {
+      setDynamicSong(null)
+      setCurrentTime(0)
+      playerRef.current.nextVideo()
+      setIsPlaying(true)
+    } catch {
+      // Fallback to manual index progression
+      const nextIdx = (songIndexRef.current + 1) % playlistRef.current.length
+      setSongIndex(nextIdx)
+      const target = playlistRef.current[nextIdx]
+      if (target) {
+        playerRef.current.loadVideoById(target.youtubeId)
+      }
+    }
+  }, [])
+
+  const handleTrackEnd = useCallback(() => {
+    const currentLoop = loopModeRef.current
+    if (currentLoop === 'one') {
+      if (playerRef.current) {
+        try {
+          playerRef.current.seekTo(0, true)
+          playerRef.current.playVideo()
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      nextSong()
+    }
+  }, [nextSong])
 
   // Initialize YouTube Iframe Player with siteConfig.youtubeMusicPlaylistId
   useEffect(() => {
@@ -281,7 +268,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playerRef.current = null
       }
     }
-  }, [syncCurrentVideoData, syncQueueFromPlayer, isReady])
+  }, [handleTrackEnd, syncCurrentVideoData, syncQueueFromPlayer, isReady])
 
   // Poll current time & duration when playing
   useEffect(() => {
@@ -338,24 +325,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [isPlaying, pause, play])
 
-  const nextSong = useCallback(() => {
-    if (!playerRef.current) return
-    try {
-      setDynamicSong(null)
-      setCurrentTime(0)
-      playerRef.current.nextVideo()
-      setIsPlaying(true)
-    } catch {
-      // Fallback to manual index progression
-      const nextIdx = (songIndexRef.current + 1) % playlistRef.current.length
-      setSongIndex(nextIdx)
-      const target = playlistRef.current[nextIdx]
-      if (target) {
-        playerRef.current.loadVideoById(target.youtubeId)
-      }
-    }
-  }, [])
-
   const prevSong = useCallback(() => {
     if (!playerRef.current) return
 
@@ -383,22 +352,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [currentTime])
-
-  const handleTrackEnd = useCallback(() => {
-    const currentLoop = loopModeRef.current
-    if (currentLoop === 'one') {
-      if (playerRef.current) {
-        try {
-          playerRef.current.seekTo(0, true)
-          playerRef.current.playVideo()
-        } catch {
-          // ignore
-        }
-      }
-    } else {
-      nextSong()
-    }
-  }, [nextSong])
 
   const seek = useCallback((seconds: number) => {
     if (playerRef.current) {
@@ -622,12 +575,4 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       {children}
     </PlayerContext.Provider>
   )
-}
-
-export function usePlayer() {
-  const context = useContext(PlayerContext)
-  if (!context) {
-    throw new Error('usePlayer must be used within a PlayerProvider')
-  }
-  return context
 }
