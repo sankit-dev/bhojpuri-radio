@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import backgroundImage from '../assets/background.png'
-import { usePlayer } from '../context/PlayerContext'
+import { usePlayer } from '../context/usePlayer'
 
 export function YouTubeBackground() {
   const { backgroundMode, bgOpacity, isPlaying, currentSong } = usePlayer()

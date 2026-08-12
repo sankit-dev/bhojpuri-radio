@@ -5,6 +5,10 @@ function readCount(value) {
     return value
   }
 
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return Number(value)
+  }
+
   if (!value || typeof value !== 'object') {
     return null
   }
@@ -20,7 +24,14 @@ function readCount(value) {
     return null
   }
 
-  for (const key of ['count', 'total', 'value', 'visits', 'visitors', 'pageViews']) {
+  for (const key of ['pageviews', 'visitors', 'count', 'total', 'value', 'visits', 'pageViews']) {
+    const count = readCount(value[key])
+    if (count !== null) {
+      return count
+    }
+  }
+
+  for (const key of ['data', 'result', 'results', 'rows']) {
     const count = readCount(value[key])
     if (count !== null) {
       return count
@@ -28,6 +39,25 @@ function readCount(value) {
   }
 
   return null
+}
+
+function describeShape(value) {
+  if (Array.isArray(value)) {
+    return {
+      type: 'array',
+      length: value.length,
+      first: value.length > 0 ? describeShape(value[0]) : null,
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    return {
+      type: 'object',
+      keys: Object.keys(value).slice(0, 12),
+    }
+  }
+
+  return { type: typeof value }
 }
 
 export default async function handler(request, response) {
@@ -71,7 +101,10 @@ export default async function handler(request, response) {
   const count = readCount(data)
 
   if (count === null) {
-    return response.status(502).json({ error: 'Unexpected Vercel analytics response' })
+    return response.status(502).json({
+      error: 'Unexpected Vercel analytics response',
+      shape: describeShape(data),
+    })
   }
 
   response.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600')

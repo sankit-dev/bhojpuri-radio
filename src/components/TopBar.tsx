@@ -3,7 +3,7 @@ import { useListenerCount } from '../hooks/useListenerCount'
 import { ListenerCount } from './ListenerCount'
 import { LocalTime } from './LocalTime'
 import { PlatformLinks } from './PlatformLinks'
-import { usePlayer } from '../context/PlayerContext'
+import { usePlayer } from '../context/usePlayer'
 
 export function TopBar() {
   const listeners = useListenerCount()
