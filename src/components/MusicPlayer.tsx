@@ -7,6 +7,8 @@ import {
   Volume2,
   VolumeX,
   Volume1,
+  Minus,
+  Plus,
   Shuffle,
   Repeat,
   Repeat1,
@@ -58,8 +60,6 @@ export function MusicPlayer() {
     setBackgroundMode,
   } = usePlayer()
 
-  const [isVolumeOpen, setIsVolumeOpen] = useState(false)
-  const [isVolumeDragging, setIsVolumeDragging] = useState(false)
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekTime, setSeekTime] = useState(0)
   const progressBarRef = useRef<HTMLDivElement>(null)
@@ -130,24 +130,6 @@ export function MusicPlayer() {
     setIsDrawerOpen,
   ])
 
-  useEffect(() => {
-    if (!isVolumeDragging) {
-      return
-    }
-
-    const stopDragging = () => {
-      setIsVolumeDragging(false)
-      setIsVolumeOpen(false)
-    }
-
-    window.addEventListener('pointerup', stopDragging)
-    window.addEventListener('pointercancel', stopDragging)
-    return () => {
-      window.removeEventListener('pointerup', stopDragging)
-      window.removeEventListener('pointercancel', stopDragging)
-    }
-  }, [isVolumeDragging])
-
   // Scrubbing calculation
   const handleSeekPointer = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -165,6 +147,13 @@ export function MusicPlayer() {
   const activeTime = isSeeking ? seekTime : currentTime
   const progressPercent = duration > 0 ? (activeTime / duration) * 100 : 0
   const isBuffering = status === 'buffering'
+  const displayedVolume = isMuted ? 0 : volume
+  const changeVolumeBy = useCallback(
+    (delta: number) => {
+      setVolume(Math.min(100, Math.max(0, volume + delta)))
+    },
+    [setVolume, volume]
+  )
 
   return (
     <section className="fixed inset-x-0 bottom-4 z-30 mx-auto w-[calc(100vw-20px)] max-w-[540px] translate-y-3 opacity-0 [animation:player-rise_800ms_ease_260ms_forwards] sm:bottom-8 sm:w-[min(540px,calc(100vw-36px))]">
@@ -313,58 +302,44 @@ export function MusicPlayer() {
               <SkipForward className="h-4 w-4" aria-hidden="true" />
             </button>
 
-            {/* Volume Control with Popover */}
-            <div
-              className="relative hidden sm:block before:absolute before:bottom-full before:left-1/2 before:h-3 before:w-36 before:-translate-x-1/2 before:content-['']"
-              onPointerEnter={() => setIsVolumeOpen(true)}
-              onPointerLeave={() => {
-                if (!isVolumeDragging) {
-                  setIsVolumeOpen(false)
-                }
-              }}
-              onFocus={() => setIsVolumeOpen(true)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setIsVolumeOpen(false)
-                }
-              }}
-            >
+            {/* Volume Controls */}
+            <div className="hidden items-center gap-0.5 rounded-full border border-white/10 bg-black/18 p-0.5 sm:flex">
               <button
-                className="grid h-8 w-8 place-items-center rounded-full text-white/75 transition hover:scale-110 hover:bg-white/10 hover:text-white cursor-pointer"
+                className="grid h-7 w-7 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer"
                 type="button"
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
+                aria-label="Decrease volume"
+                onClick={() => changeVolumeBy(-10)}
+                disabled={displayedVolume === 0}
+              >
+                <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+
+              <button
+                className="grid h-7 w-7 place-items-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white cursor-pointer"
+                type="button"
+                aria-label={isMuted ? `Unmute, volume ${volume}%` : `Mute, volume ${volume}%`}
+                title={isMuted ? `Unmute (${volume}%)` : `Mute (${volume}%)`}
                 onClick={toggleMute}
               >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="h-4 w-4 text-rose-300" />
+                {displayedVolume === 0 ? (
+                  <VolumeX className="h-4 w-4 text-rose-300" aria-hidden="true" />
                 ) : volume < 50 ? (
-                  <Volume1 className="h-4 w-4" />
+                  <Volume1 className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-4 w-4" aria-hidden="true" />
                 )}
               </button>
 
-              {/* Volume Slider Popover */}
-              {isVolumeOpen && (
-                <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-white/20 bg-stone-900/95 px-3 py-2 shadow-2xl backdrop-blur-xl animate-[fade-in_150ms_ease]">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={isMuted ? 0 : volume}
-                    onPointerDown={() => {
-                      setIsVolumeDragging(true)
-                      setIsVolumeOpen(true)
-                    }}
-                    onChange={(e) => setVolume(Number(e.target.value))}
-                    className="h-1.5 w-20 cursor-pointer accent-amber-400"
-                    aria-label="Volume level"
-                  />
-                  <span className="text-[10px] tabular-nums font-semibold text-white/80 w-6">
-                    {isMuted ? '0%' : `${volume}%`}
-                  </span>
-                </div>
-              )}
+              <button
+                className="grid h-7 w-7 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 cursor-pointer"
+                type="button"
+                aria-label="Increase volume"
+                onClick={() => changeVolumeBy(10)}
+                disabled={!isMuted && volume === 100}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+
             </div>
 
             {/* Playlist Drawer Trigger */}
