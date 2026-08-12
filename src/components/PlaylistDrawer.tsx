@@ -26,9 +26,13 @@ export function PlaylistDrawer() {
     setBackgroundMode,
     bgOpacity,
     setBgOpacity,
+    replacePlaylist,
   } = usePlayer()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [playlistInput, setPlaylistInput] = useState('')
+  const [playlistError, setPlaylistError] = useState<string | null>(null)
+  const [playlistUpdated, setPlaylistUpdated] = useState(false)
 
   const filteredPlaylist = useMemo(() => {
     if (!searchQuery.trim()) return playlist
@@ -42,6 +46,23 @@ export function PlaylistDrawer() {
   }, [playlist, searchQuery])
 
   if (!isDrawerOpen) return null
+
+  const handleReplacePlaylist = (event: React.FormEvent) => {
+    event.preventDefault()
+    setPlaylistError(null)
+    setPlaylistUpdated(false)
+
+    const success = replacePlaylist(playlistInput)
+    if (!success) {
+      setPlaylistError('Paste a valid public YouTube playlist URL or playlist ID.')
+      return
+    }
+
+    setSearchQuery('')
+    setPlaylistInput('')
+    setPlaylistUpdated(true)
+    window.setTimeout(() => setPlaylistUpdated(false), 1600)
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
@@ -149,11 +170,57 @@ export function PlaylistDrawer() {
             onClick={() => {
               setIsCustomModalOpen(true)
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 transition"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 transition"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Custom YouTube Video / Song
           </button>
+
+          <form
+            onSubmit={handleReplacePlaylist}
+            className="rounded-2xl border border-white/10 bg-black/30 p-3"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-[11px] font-medium text-stone-300">
+                Replace Station Playlist
+              </span>
+              {playlistUpdated ? (
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                  Loaded
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={playlistInput}
+                onChange={(event) => {
+                  setPlaylistInput(event.target.value)
+                  setPlaylistError(null)
+                }}
+                placeholder="music.youtube.com/playlist?list=..."
+                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white placeholder-stone-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-amber-400 px-3 py-2 text-xs font-bold text-stone-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!playlistInput.trim()}
+              >
+                Replace
+              </button>
+            </div>
+
+            {playlistError ? (
+              <p className="mt-2 rounded-lg border border-rose-500/25 bg-rose-950/30 px-2 py-1.5 text-[11px] text-rose-300">
+                {playlistError}
+              </p>
+            ) : (
+              <p className="mt-2 text-[10px] text-stone-500">
+                Use any public YouTube or YouTube Music playlist link.
+              </p>
+            )}
+          </form>
         </div>
 
         {/* Search */}

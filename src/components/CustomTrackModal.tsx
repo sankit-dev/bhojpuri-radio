@@ -1,30 +1,7 @@
 import { useState, useMemo } from 'react'
-import { X, Plus, Sparkles, Check, Video } from 'lucide-react'
+import { X, Plus, Check, Video } from 'lucide-react'
 import { usePlayer } from '../context/PlayerContext'
 import { extractYouTubeId, getYouTubeThumbnail } from '../utils/youtube'
-
-const QUICK_PRESETS = [
-  {
-    title: 'Kamariya Bole Lollipop',
-    artist: 'Pawan Singh',
-    id: '525j4-5q5L4',
-  },
-  {
-    title: 'Bagalwali Classic',
-    artist: 'Manoj Tiwari',
-    id: 'kYJzX3i4GzY',
-  },
-  {
-    title: 'Thik Hai',
-    artist: 'Khesari Lal Yadav',
-    id: '4jJqpBGZrzI',
-  },
-  {
-    title: 'Bhojpuri Lofi Chill Session',
-    artist: 'Lofi Records',
-    id: 'FOwOsVhgnXQ',
-  },
-]
 
 export function CustomTrackModal() {
   const { isCustomModalOpen, setIsCustomModalOpen, addCustomTrack } = usePlayer()
@@ -71,12 +48,6 @@ export function CustomTrackModal() {
     }
   }
 
-  const handleSelectPreset = (preset: (typeof QUICK_PRESETS)[0]) => {
-    setUrlInput(preset.id)
-    setTitleInput(preset.title)
-    setArtistInput(preset.artist)
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -110,26 +81,6 @@ export function CustomTrackModal() {
           >
             <X className="h-5 w-5" />
           </button>
-        </div>
-
-        {/* Quick Presets */}
-        <div className="mt-4">
-          <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium mb-2">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Popular Bhojpuri Tracks</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {QUICK_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handleSelectPreset(preset)}
-                className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-stone-300 hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-200 transition"
-              >
-                {preset.title}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Form */}

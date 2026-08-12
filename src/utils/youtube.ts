@@ -29,6 +29,32 @@ export function extractYouTubeId(urlOrId: string): string | null {
   return null
 }
 
+export function extractYouTubePlaylistId(urlOrId: string): string | null {
+  const trimmed = urlOrId.trim()
+  if (!trimmed) return null
+
+  try {
+    const parsedUrl = new URL(trimmed)
+    const playlistId = parsedUrl.searchParams.get('list')
+    if (playlistId) {
+      return playlistId
+    }
+  } catch {
+    // Continue with direct ID and loose URL matching.
+  }
+
+  const match = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/)
+  if (match?.[1]) {
+    return match[1]
+  }
+
+  if (/^[a-zA-Z0-9_-]{12,}$/.test(trimmed)) {
+    return trimmed
+  }
+
+  return null
+}
+
 export function getYouTubeThumbnail(videoId: string, quality: 'max' | 'hq' | 'mq' = 'hq'): string {
   if (quality === 'max') {
     return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`

@@ -1,12 +1,36 @@
 import { useEffect, useState } from 'react'
-import { siteConfig } from '../config/site'
 
 export function useListenerCount() {
-  const [count, setCount] = useState(siteConfig.listeners)
+  const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
-    // Replace this with a WebSocket or SSE connection when the presence backend exists.
-    setCount(siteConfig.listeners)
+    const controller = new AbortController()
+
+    async function loadVisits() {
+      try {
+        const response = await fetch('/api/visits', {
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = (await response.json()) as { visits?: unknown }
+
+        if (typeof data.visits === 'number' && Number.isFinite(data.visits)) {
+          setCount(data.visits)
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn('Unable to load Vercel visit count:', error)
+        }
+      }
+    }
+
+    loadVisits()
+
+    return () => controller.abort()
   }, [])
 
   return count

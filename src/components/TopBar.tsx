@@ -27,21 +27,23 @@ export function TopBar() {
         </div>
       </div>
 
-      {/* Center: Live Listeners & Mode pill */}
-      <div className="pointer-events-auto hidden md:flex items-center justify-center gap-3 justify-self-center text-[12px] sm:text-[13px]">
-        <div className="rounded-full border border-white/15 bg-black/40 px-3 py-1 backdrop-blur-md">
+      {/* Center: Live Listeners & Mode Controls */}
+      <div className="pointer-events-auto hidden md:flex items-center justify-center justify-self-center rounded-full border border-white/15 bg-black/38 p-1.5 text-[12px] shadow-[0_14px_44px_rgba(0,0,0,0.26)] ring-1 ring-white/8 backdrop-blur-xl sm:text-[13px]">
+        <div className="flex h-8 min-w-[104px] items-center justify-center rounded-full border border-white/12 bg-white/8 px-3.5 text-white">
           <ListenerCount count={listeners} />
         </div>
 
-        {/* Quick Background Mode pill */}
-        <div className="flex items-center rounded-full border border-white/15 bg-black/40 p-0.5 backdrop-blur-md text-[11px]">
+        <div className="mx-1 h-5 w-px bg-white/14" />
+
+        {/* Quick Background Mode Controls */}
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setBackgroundMode('video')}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 transition cursor-pointer ${
+            className={`flex h-8 min-w-[78px] items-center justify-center gap-1.5 rounded-full px-3 transition cursor-pointer ${
               backgroundMode === 'video'
-                ? 'bg-amber-500/90 text-stone-950 font-bold'
-                : 'text-stone-300 hover:text-white'
+                ? 'bg-amber-400 text-stone-950 font-bold shadow-[0_6px_18px_rgba(251,191,36,0.28)]'
+                : 'text-stone-300 hover:bg-white/8 hover:text-white'
             }`}
             title="Video Background"
           >
@@ -51,10 +53,10 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setBackgroundMode('art')}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 transition cursor-pointer ${
+            className={`flex h-8 min-w-[78px] items-center justify-center gap-1.5 rounded-full px-3 transition cursor-pointer ${
               backgroundMode === 'art'
-                ? 'bg-amber-500/90 text-stone-950 font-bold'
-                : 'text-stone-300 hover:text-white'
+                ? 'bg-amber-400 text-stone-950 font-bold shadow-[0_6px_18px_rgba(251,191,36,0.28)]'
+                : 'text-stone-300 hover:bg-white/8 hover:text-white'
             }`}
             title="Artwork Background"
           >
@@ -64,10 +66,10 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setBackgroundMode('hybrid')}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 transition cursor-pointer ${
+            className={`flex h-8 min-w-[78px] items-center justify-center gap-1.5 rounded-full px-3 transition cursor-pointer ${
               backgroundMode === 'hybrid'
-                ? 'bg-amber-500/90 text-stone-950 font-bold'
-                : 'text-stone-300 hover:text-white'
+                ? 'bg-amber-400 text-stone-950 font-bold shadow-[0_6px_18px_rgba(251,191,36,0.28)]'
+                : 'text-stone-300 hover:bg-white/8 hover:text-white'
             }`}
             title="Hybrid Ambient Blend"
           >
@@ -78,11 +80,11 @@ export function TopBar() {
       </div>
 
       {/* Right: Actions & Links */}
-      <div className="pointer-events-auto flex items-center gap-2 justify-self-end">
+      <div className="pointer-events-auto flex items-center gap-1.5 justify-self-end rounded-full border border-white/15 bg-black/38 p-1.5 text-[12px] shadow-[0_14px_44px_rgba(0,0,0,0.24)] ring-1 ring-white/8 backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setIsCustomModalOpen(true)}
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-amber-200 hover:bg-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
+          className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-amber-200 transition hover:bg-white/8 hover:text-amber-100 sm:inline-flex cursor-pointer"
         >
           <Plus className="h-3 w-3" />
           <span>Add Song</span>
@@ -91,13 +93,15 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setIsDrawerOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-white hover:bg-white/10 backdrop-blur-md transition cursor-pointer"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-white transition hover:bg-white/8 cursor-pointer"
         >
           <ListMusic className="h-3.5 w-3.5 text-amber-300" />
           <span>Playlist</span>
         </button>
 
-        <div className="hidden lg:block pl-2">
+        <div className="mx-0.5 hidden h-5 w-px bg-white/14 lg:block" />
+
+        <div className="hidden lg:block">
           <PlatformLinks />
         </div>
       </div>

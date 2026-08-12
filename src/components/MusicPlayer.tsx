@@ -58,7 +58,8 @@ export function MusicPlayer() {
     setBackgroundMode,
   } = usePlayer()
 
-  const [isVolumeHovered, setIsVolumeHovered] = useState(false)
+  const [isVolumeOpen, setIsVolumeOpen] = useState(false)
+  const [isVolumeDragging, setIsVolumeDragging] = useState(false)
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekTime, setSeekTime] = useState(0)
   const progressBarRef = useRef<HTMLDivElement>(null)
@@ -128,6 +129,24 @@ export function MusicPlayer() {
     toggleLoop,
     setIsDrawerOpen,
   ])
+
+  useEffect(() => {
+    if (!isVolumeDragging) {
+      return
+    }
+
+    const stopDragging = () => {
+      setIsVolumeDragging(false)
+      setIsVolumeOpen(false)
+    }
+
+    window.addEventListener('pointerup', stopDragging)
+    window.addEventListener('pointercancel', stopDragging)
+    return () => {
+      window.removeEventListener('pointerup', stopDragging)
+      window.removeEventListener('pointercancel', stopDragging)
+    }
+  }, [isVolumeDragging])
 
   // Scrubbing calculation
   const handleSeekPointer = useCallback(
@@ -296,9 +315,19 @@ export function MusicPlayer() {
 
             {/* Volume Control with Popover */}
             <div
-              className="relative hidden sm:block"
-              onMouseEnter={() => setIsVolumeHovered(true)}
-              onMouseLeave={() => setIsVolumeHovered(false)}
+              className="relative hidden sm:block before:absolute before:bottom-full before:left-1/2 before:h-3 before:w-36 before:-translate-x-1/2 before:content-['']"
+              onPointerEnter={() => setIsVolumeOpen(true)}
+              onPointerLeave={() => {
+                if (!isVolumeDragging) {
+                  setIsVolumeOpen(false)
+                }
+              }}
+              onFocus={() => setIsVolumeOpen(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setIsVolumeOpen(false)
+                }
+              }}
             >
               <button
                 className="grid h-8 w-8 place-items-center rounded-full text-white/75 transition hover:scale-110 hover:bg-white/10 hover:text-white cursor-pointer"
@@ -316,13 +345,17 @@ export function MusicPlayer() {
               </button>
 
               {/* Volume Slider Popover */}
-              {isVolumeHovered && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex items-center gap-2 rounded-2xl border border-white/20 bg-stone-900/95 px-3 py-2 shadow-2xl backdrop-blur-xl animate-[fade-in_150ms_ease]">
+              {isVolumeOpen && (
+                <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-white/20 bg-stone-900/95 px-3 py-2 shadow-2xl backdrop-blur-xl animate-[fade-in_150ms_ease]">
                   <input
                     type="range"
                     min="0"
                     max="100"
                     value={isMuted ? 0 : volume}
+                    onPointerDown={() => {
+                      setIsVolumeDragging(true)
+                      setIsVolumeOpen(true)
+                    }}
                     onChange={(e) => setVolume(Number(e.target.value))}
                     className="h-1.5 w-20 cursor-pointer accent-amber-400"
                     aria-label="Volume level"
