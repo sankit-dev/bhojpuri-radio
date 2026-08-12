@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react'
 import { PlayerProvider } from './context/PlayerContext'
 import { YouTubeBackground } from './components/YouTubeBackground'
 import { TopBar } from './components/TopBar'
@@ -43,6 +44,7 @@ export function App() {
   return (
     <PlayerProvider>
       <RadioExperience />
+      <Analytics />
     </PlayerProvider>
   )
 }
