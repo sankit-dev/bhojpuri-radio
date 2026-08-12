@@ -1,20 +1,49 @@
-function App() {
+import { PlayerProvider } from './context/PlayerContext'
+import { YouTubeBackground } from './components/YouTubeBackground'
+import { TopBar } from './components/TopBar'
+import { MusicPlayer } from './components/MusicPlayer'
+import { PlaylistDrawer } from './components/PlaylistDrawer'
+import { CustomTrackModal } from './components/CustomTrackModal'
+import { siteConfig } from './config/site'
+
+function RadioExperience() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-      <section className="max-w-2xl text-center">
-        <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-cyan-300">
-          Vite + React + Tailwind CSS
-        </p>
-        <h1 className="text-4xl font-bold sm:text-6xl">Bhojpuri Radio</h1>
-        <p className="mt-6 text-lg leading-8 text-slate-300">
-          Tailwind is installed and ready. Edit{' '}
-          <code className="rounded bg-white/10 px-2 py-1 text-cyan-200">
-            src/App.tsx
-          </code>{' '}
-          to start building.
-        </p>
-      </section>
+    <main className="relative h-dvh w-screen overflow-hidden bg-stone-950 text-white select-none">
+      {/* Background YouTube Video & Ambient Artwork */}
+      <YouTubeBackground />
+
+      {/* Top Header Navigation */}
+      <TopBar />
+
+      {/* Hero Title (Optional / Ambient Centerpiece) */}
+      {siteConfig.showHeroTitle ? (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center [text-shadow:0_4px_24px_rgba(0,0,0,0.85)]">
+          <p className="text-4xl sm:text-6xl font-bold tracking-tight text-white/90">
+            Puranka Bhojpuri
+          </p>
+          <p className="mt-2 text-xs sm:text-sm font-medium tracking-widest text-amber-300/80 uppercase">
+            Vintage Bhojpuri Lofi & Classics
+          </p>
+        </div>
+      ) : null}
+
+      {/* Primary Floating Glassmorphic Music Player */}
+      <MusicPlayer />
+
+      {/* Sliding Playlist Queue Drawer */}
+      <PlaylistDrawer />
+
+      {/* Add Custom YouTube Track Modal */}
+      <CustomTrackModal />
     </main>
+  )
+}
+
+export function App() {
+  return (
+    <PlayerProvider>
+      <RadioExperience />
+    </PlayerProvider>
   )
 }
 
