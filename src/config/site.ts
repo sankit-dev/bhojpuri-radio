@@ -4,6 +4,5 @@ export const externalLinks = {
 
 export const siteConfig = {
   showHeroTitle: false,
-  visits: 27,
   youtubeMusicPlaylistId: "PLYRRZTvdK4eQ",
 };
