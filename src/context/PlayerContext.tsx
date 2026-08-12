@@ -11,7 +11,7 @@ import { defaultPlaylist } from '../data/playlist'
 import { siteConfig } from '../config/site'
 import type { BackgroundMode, PlaybackStatus, Song } from '../types/player'
 import type { YTPlayerInstance } from '../types/youtube'
-import { extractYouTubeId, getYouTubeThumbnail } from '../utils/youtube'
+import { extractYouTubeId, extractYouTubePlaylistId, getYouTubeThumbnail } from '../utils/youtube'
 
 interface PlayerContextType {
   playlist: Song[]
@@ -42,6 +42,7 @@ interface PlayerContextType {
   toggleMute: () => void
   selectSong: (index: number) => void
   addCustomTrack: (urlOrId: string, title?: string, artist?: string) => boolean
+  replacePlaylist: (urlOrId: string) => boolean
   toggleShuffle: () => void
   toggleLoop: () => void
   setBackgroundMode: (mode: BackgroundMode) => void
@@ -65,7 +66,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isMuted, setIsMuted] = useState(false)
   const [isShuffle, setIsShuffle] = useState(false)
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('all')
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('video')
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('art')
   const [bgOpacity, setBgOpacity] = useState(0.85)
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +87,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Active track is either dynamic from YouTube playlist or selected from playlist array
   const currentSong = dynamicSong || playlist[songIndex] || playlist[0]
+
+  const syncQueueFromPlayer = useCallback((targetPlayer: YTPlayerInstance) => {
+    try {
+      const ytPlaylist = targetPlayer.getPlaylist?.()
+      if (!Array.isArray(ytPlaylist) || ytPlaylist.length === 0) {
+        return
+      }
+
+      const syncedSongs: Song[] = ytPlaylist.map((id, idx) => {
+        const existing = defaultPlaylist.find((song) => song.youtubeId === id)
+        return (
+          existing || {
+            id: `yt-pl-${id}-${idx}`,
+            youtubeId: id,
+            title: `YouTube Playlist Track #${idx + 1}`,
+            artist: 'Custom YouTube Playlist',
+            cover: getYouTubeThumbnail(id, 'hq'),
+            genre: 'YouTube Playlist',
+          }
+        )
+      })
+
+      setPlaylist(syncedSongs)
+    } catch {
+      // ignore
+    }
+  }, [])
 
   // Update dynamic song details from player
   const syncCurrentVideoData = useCallback((targetPlayer: YTPlayerInstance) => {
@@ -173,23 +201,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 }
 
                 // If playlist IDs are returned, populate/sync queue
-                const ytPlaylist = event.target.getPlaylist?.()
-                if (Array.isArray(ytPlaylist) && ytPlaylist.length > 0) {
-                  const syncedSongs: Song[] = ytPlaylist.map((id, idx) => {
-                    const existing = defaultPlaylist.find((s) => s.youtubeId === id)
-                    return (
-                      existing || {
-                        id: `yt-pl-${id}-${idx}`,
-                        youtubeId: id,
-                        title: `Bhojpuri Track #${idx + 1}`,
-                        artist: 'Puranka Radio Playlist',
-                        cover: getYouTubeThumbnail(id, 'hq'),
-                        genre: 'Bhojpuri Hit',
-                      }
-                    )
-                  })
-                  setPlaylist(syncedSongs)
-                }
+                syncQueueFromPlayer(event.target)
               } catch (e) {
                 console.warn('Error setting initial volume/duration:', e)
               }
@@ -269,7 +281,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playerRef.current = null
       }
     }
-  }, [syncCurrentVideoData, isReady])
+  }, [syncCurrentVideoData, syncQueueFromPlayer, isReady])
 
   // Poll current time & duration when playing
   useEffect(() => {
@@ -492,6 +504,53 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     []
   )
 
+  const replacePlaylist = useCallback(
+    (urlOrId: string): boolean => {
+      const playlistId = extractYouTubePlaylistId(urlOrId)
+      if (!playlistId) return false
+
+      const loadingTrack: Song = {
+        id: `playlist-${playlistId}`,
+        youtubeId: '',
+        title: 'Loading YouTube playlist...',
+        artist: 'Custom YouTube Playlist',
+        genre: 'Playlist',
+        description: `Source playlist: ${playlistId}`,
+      }
+
+      setPlaylist([loadingTrack])
+      setSongIndex(0)
+      setDynamicSong(null)
+      setCurrentTime(0)
+      setDuration(0)
+      setHasUserInteracted(true)
+
+      if (playerRef.current) {
+        try {
+          playerRef.current.loadPlaylist({
+            list: playlistId,
+            listType: 'playlist',
+            index: 0,
+          })
+          setIsPlaying(true)
+
+          window.setTimeout(() => {
+            if (playerRef.current) {
+              syncQueueFromPlayer(playerRef.current)
+              syncCurrentVideoData(playerRef.current)
+            }
+          }, 1200)
+        } catch (e) {
+          console.warn('Error replacing playlist:', e)
+          return false
+        }
+      }
+
+      return true
+    },
+    [syncCurrentVideoData, syncQueueFromPlayer]
+  )
+
   const toggleShuffle = useCallback(() => {
     setIsShuffle((prev) => {
       const next = !prev
@@ -551,6 +610,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleMute,
         selectSong,
         addCustomTrack,
+        replacePlaylist,
         toggleShuffle,
         toggleLoop,
         setBackgroundMode,
