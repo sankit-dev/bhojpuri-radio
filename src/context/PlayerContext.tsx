@@ -8,6 +8,40 @@ import { extractYouTubeId, extractYouTubePlaylistId, getYouTubeThumbnail } from 
 
 const YOUTUBE_CONTAINER_ID = 'youtube-iframe-player'
 
+const isPlaylistPlaceholderTitle = (title: string) => /^YouTube Playlist Track #\d+$/.test(title)
+
+const youtubeMetadataCache = new Map<string, Promise<Partial<Song> | null>>()
+
+const fetchYouTubeMetadata = (videoId: string): Promise<Partial<Song> | null> => {
+  const cached = youtubeMetadataCache.get(videoId)
+  if (cached) return cached
+
+  const request = fetch(
+    `https://noembed.com/embed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`
+  )
+    .then(async (response) => {
+      if (!response.ok) return null
+
+      const data = (await response.json()) as {
+        title?: string
+        author_name?: string
+        thumbnail_url?: string
+      }
+
+      if (!data.title?.trim()) return null
+
+      return {
+        title: data.title.trim(),
+        artist: data.author_name?.trim() || 'YouTube',
+        cover: data.thumbnail_url || getYouTubeThumbnail(videoId, 'hq'),
+      }
+    })
+    .catch(() => null)
+
+  youtubeMetadataCache.set(videoId, request)
+  return request
+}
+
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [playlist, setPlaylist] = useState<Song[]>(defaultPlaylist)
   const [songIndex, setSongIndex] = useState(0)
@@ -41,6 +75,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Active track is either dynamic from YouTube playlist or selected from playlist array
   const currentSong = dynamicSong || playlist[songIndex] || playlist[0]
 
+  const updatePlaylistSongMetadata = useCallback((videoId: string, metadata: Partial<Song>, index?: number) => {
+    if (!videoId) return
+
+    setPlaylist((prev) =>
+      prev.map((song, idx) => {
+        const isTarget = song.youtubeId === videoId || (typeof index === 'number' && idx === index)
+        if (!isTarget) return song
+
+        const shouldReplaceTitle = !song.title || isPlaylistPlaceholderTitle(song.title)
+        const shouldReplaceArtist = !song.artist || song.artist === 'Custom YouTube Playlist'
+
+        return {
+          ...song,
+          title: shouldReplaceTitle && metadata.title ? metadata.title : song.title,
+          artist: shouldReplaceArtist && metadata.artist ? metadata.artist : song.artist,
+          cover: metadata.cover || song.cover || getYouTubeThumbnail(videoId, 'hq'),
+        }
+      })
+    )
+  }, [])
+
+  const enrichQueueMetadata = useCallback(
+    (videoIds: string[]) => {
+      videoIds.forEach((videoId, index) => {
+        const curated = defaultPlaylist.find((song) => song.youtubeId === videoId)
+        if (curated) {
+          updatePlaylistSongMetadata(videoId, curated, index)
+          return
+        }
+
+        void fetchYouTubeMetadata(videoId).then((metadata) => {
+          if (metadata) {
+            updatePlaylistSongMetadata(videoId, metadata, index)
+          }
+        })
+      })
+    },
+    [updatePlaylistSongMetadata]
+  )
+
   const syncQueueFromPlayer = useCallback((targetPlayer: YTPlayerInstance) => {
     try {
       const ytPlaylist = targetPlayer.getPlaylist?.()
@@ -63,10 +137,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       })
 
       setPlaylist(syncedSongs)
+      enrichQueueMetadata(ytPlaylist)
     } catch {
       // ignore
     }
-  }, [])
+  }, [enrichQueueMetadata])
 
   // Update dynamic song details from player
   const syncCurrentVideoData = useCallback((targetPlayer: YTPlayerInstance) => {
@@ -82,15 +157,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const videoId = data.video_id || ''
         const title = data.title || 'Puranka Bhojpuri Music'
         const artist = data.author || 'Bhojpuri Radio Station'
+        const metadata: Partial<Song> = {
+          title,
+          artist,
+          cover: videoId ? getYouTubeThumbnail(videoId, 'hq') : undefined,
+        }
 
         setDynamicSong({
           id: videoId || `track-${pIdx || 0}`,
           youtubeId: videoId,
-          title,
-          artist,
-          cover: videoId ? getYouTubeThumbnail(videoId, 'hq') : undefined,
+          title: metadata.title || title,
+          artist: metadata.artist || artist,
+          cover: metadata.cover,
           genre: 'Puranka Bhojpuri',
         })
+
+        updatePlaylistSongMetadata(videoId, metadata, pIdx)
       }
 
       const dur = targetPlayer.getDuration()
@@ -98,7 +180,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-  }, [])
+  }, [updatePlaylistSongMetadata])
 
   const nextSong = useCallback(() => {
     if (!playerRef.current) return
